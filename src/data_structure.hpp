@@ -5,45 +5,48 @@
 *   Revere Lab, Chalmers / GU, 2018
 */
 
-struct FB_state // feedback states, line 7-12 in .m file
+class FB_state // feedback states, line 7-12 in .m file
 {
-    double xp_dot;  // longitudinal speed
-    double yp_dot;  // lateral speed
-    double psi_dot; //
-    double epsi;    //
-    double lp;      // lateral position
-    double s;       // longitudinal position
+public:
+    double xp_dot{0.0};  // longitudinal speed
+    double yp_dot{0.0};  // lateral speed
+    double psi_dot{0.0}; //
+    double epsi{0.0};    //
+    double ey{0.0};      // lateral position
+    double s{0.0};       // longitudinal position
 };
 
-struct Obstacle // line 18-26
+class Obstacle // line 18-26
 {
-    double pos_x;
-    double pos_y;
-    double vel_x;
-    double vel_y;
-    double acc_x;
-    double acc_y;
-    double radius;
-}
+public:
+    double pos_x{0.0};
+    double pos_y{0.0};
+    double vel_x{0.0};
+    double vel_y{0.0};
+    double acc_x{0.0};
+    double acc_y{0.0};
+    double radius{0.0};
+};
 
-struct Coefficient // the return value "out", line  463-480
+class Coefficient // the return value "out", line  463-480
 {
-    double norm_relpos;
-    double h_angle_moving;
-    double A_n_angle_moving; 
-    double B_n_angle_moving;    
-    double h_angle_fix; 
-    double A_n_angle_fix;
-    double B_n_angle_fix;
-    double h_dis;
-    double A_n_dis;
-    double B_n_dis;
-    double alert;
-    double h_sid_pos;
-    double A_n_side_pos;
-    double b_n_side_pos;
-    double h_sid_pos;
-    double A_n_side_neg;
-    double b_n_side_neg;
-    double radius;
-}
+public:
+    double norm_relpos{0.0};
+    double h_angle_moving{0.0};
+    double A_n_angle_moving{0.0}; 
+    double B_n_angle_moving{0.0};    
+    double h_angle_fix{0.0}; 
+    double A_n_angle_fix{0.0};
+    double B_n_angle_fix{0.0};
+    double h_dis{0.0};
+    double A_n_dis{0.0};
+    double B_n_dis{0.0};
+    double alert{0.0};
+    double h_sid_pos{0.0};
+    double A_n_side_pos{0.0};
+    double b_n_side_pos{0.0};
+    double h_sid_neg{0.0};
+    double A_n_side_neg{0.0};
+    double b_n_side_neg{0.0};
+    double radius{0.0};
+};
