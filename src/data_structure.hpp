@@ -5,6 +5,8 @@
 *   Revere Lab, Chalmers / GU, 2018
 */
 
+#include <Eigen/Dense>
+
 class FB_state // feedback states, line 7-12 in .m file
 {
 public:
@@ -33,20 +35,20 @@ class Coefficient // the return value "out", line  463-480
 public:
     double norm_relpos{0.0};
     double h_angle_moving{0.0};
-    double A_n_angle_moving{0.0}; 
-    double B_n_angle_moving{0.0};    
+    Eigen::Vector2d A_n_angle_moving; 
+    double b_n_angle_moving{0.0};    
     double h_angle_fix{0.0}; 
-    double A_n_angle_fix{0.0};
-    double B_n_angle_fix{0.0};
+    Eigen::Vector2d A_n_angle_fix;
+    double b_n_angle_fix{0.0};
     double h_dis{0.0};
-    double A_n_dis{0.0};
-    double B_n_dis{0.0};
-    double alert{0.0};
+    Eigen::Vector2d A_n_dis;
+    double b_n_dis{0.0};
+    bool alert{false};
     double h_sid_pos{0.0};
-    double A_n_side_pos{0.0};
+    Eigen::Vector2d A_n_side_pos;
     double b_n_side_pos{0.0};
     double h_sid_neg{0.0};
-    double A_n_side_neg{0.0};
+    Eigen::Vector2d A_n_side_neg;
     double b_n_side_neg{0.0};
     double radius{0.0};
 };
