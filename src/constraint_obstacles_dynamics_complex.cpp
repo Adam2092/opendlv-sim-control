@@ -77,11 +77,11 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
         -(sin(epsi) * (yp_dot * cos(epsi) + xp_dot * sin(epsi))) / a_m;
     // line 154 so far
 
-    double temp = yp_dot * cos(epsi) + xp_dot * sin(epsi);
+    double temp_d = yp_dot * cos(epsi) + xp_dot * sin(epsi);
     Eigen::Vector2d A_n_side_pos, A_n_side_neg;
     double b_n_side_pos, b_n_side_neg;
 
-    if ((h_sid_pos > 0) && (temp < 0))
+    if ((h_sid_pos > 0) && (temp_d < 0))
     {
         A_n_side_pos << 0, 0;
         b_n_side_pos - 1;
@@ -92,7 +92,7 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
         b_n_side_pos = L_f_h_sid_pos + 0.5 * h_sid_pos;
     }
     
-    if ((h_sid_neg > 0) && (temp > 0))
+    if ((h_sid_neg > 0) && (temp_d > 0))
     {
         A_n_side_neg << 0, 0;
         b_n_side_neg - 1;
@@ -114,13 +114,8 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
         double acc_ob_x = ob_array[i].acc_x;
         double acc_ob_y = ob_array[i].acc_y;
 
-/*            v_vehicle = [xp_dot*cos(epsi)-yp_dot*sin(epsi); yp_dot*cos(epsi) + xp_dot*sin(epsi)];
-    rel_pos = [s; ey] - pos_ob;
-    rel_vel = v_vehicle - [vel_ob_x; vel_ob_y];*/
-
         Eigen::Vector2d v_vehicle, rel_pos, rel_vel;
-        v_vehicle << xp_dot * cos(epsi) - yp_dot * sin(epsi), 
-            yp_dot * cos(epsi) + xp_dot * sin(epsi);
+        v_vehicle << xp_dot * cos(epsi) - yp_dot * sin(epsi), yp_dot * cos(epsi) + xp_dot * sin(epsi);
         rel_pos << s - pos_ob_x, ey - pos_ob_y;
         rel_vel << v_vehicle(0) - vel_ob_x, v_vehicle(1) - vel_ob_y;
         // line 201 so far
@@ -129,11 +124,16 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
         double cos_rel_ang = -(rel_pos.adjoint() * rel_vel)(0);
         cos_rel_ang /= rel_pos.norm();
         cos_rel_ang /= rel_vel.norm();
-        double rel_ang = 0.0, h_ang = 0.0;
+
+        double h_ang = 3.0;
+        Eigen::Vector2d A_n_angle_fix;
+        A_n_angle_fix << 0, 0;
+        double b_n_angle_fix = 1.0;
+
         if (cos_rel_ang > -0.99)
         {
             cos_rel_ang = (cos_rel_ang >= 1)? 1: cos_rel_ang;
-            rel_ang = acos(cos_rel_ang);
+            double rel_ang = acos(cos_rel_ang);
             double ratio = Ds / rel_pos.norm();
             if (ratio >= 1)
             {
@@ -147,26 +147,21 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
             epsi = (abs(epsi) < 0.00001) ? epsi / abs(epsi) * 0.00001 : epsi;
             // line 249 so far
 
-            /*L_f_h_ang_part1 = - ((psi_dot - psi_dot_com)*(xp_dot^2 + yp_dot^2 - vel_ob_x*xp_dot*cos(epsi) - vel_ob_y*yp_dot*cos(epsi) - vel_ob_y*xp_dot*sin(epsi) + vel_ob_x*yp_dot*sin(epsi))*(ey*vel_ob_x + pos_ob_x*vel_ob_y - pos_ob_y*vel_ob_x - s*vel_ob_y - ey*xp_dot*cos(epsi) + pos_ob_y*xp_dot*cos(epsi) - pos_ob_x*yp_dot*cos(epsi) + s*yp_dot*cos(epsi) + ey*yp_dot*sin(epsi) - pos_ob_x*xp_dot*sin(epsi) - pos_ob_y*yp_dot*sin(epsi) + s*xp_dot*sin(epsi)))/((1 - ((pos_ob_x - s)*(vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi)) + (ey - pos_ob_y)*(yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi)))^2/(((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)))^(1/2)*((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)^(1/2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)^(3/2)) - ((ey - pos_ob_y)*(xp_dot*cos(epsi) - yp_dot*sin(epsi))*(ey*vel_ob_x + pos_ob_x*vel_ob_y - pos_ob_y*vel_ob_x - s*vel_ob_y - ey*xp_dot*cos(epsi) + pos_ob_y*xp_dot*cos(epsi) - pos_ob_x*yp_dot*cos(epsi) + s*yp_dot*cos(epsi) + ey*yp_dot*sin(epsi) - pos_ob_x*xp_dot*sin(epsi) - pos_ob_y*yp_dot*sin(epsi) + s*xp_dot*sin(epsi)))/((1 - ((pos_ob_x - s)*(vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi)) + (ey - pos_ob_y)*(yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi)))^2/(((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)))^(1/2)*((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)^(3/2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)^(1/2)) - ((pos_ob_x - s)*(yp_dot*cos(epsi) + xp_dot*sin(epsi))*(ey*vel_ob_x + pos_ob_x*vel_ob_y - pos_ob_y*vel_ob_x - s*vel_ob_y - ey*xp_dot*cos(epsi) + pos_ob_y*xp_dot*cos(epsi) - pos_ob_x*yp_dot*cos(epsi) + s*yp_dot*cos(epsi) + ey*yp_dot*sin(epsi) - pos_ob_x*xp_dot*sin(epsi) - pos_ob_y*yp_dot*sin(epsi) + s*xp_dot*sin(epsi)))/((1 - ((pos_ob_x - s)*(vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi)) + (ey - pos_ob_y)*(yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi)))^2/(((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)))^(1/2)*((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)^(3/2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)^(1/2)) - ((vel_ob_x*cos(epsi) - xp_dot + vel_ob_y*sin(epsi))*(m*psi_dot*xp_dot^2 + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot)*(ey*vel_ob_x + pos_ob_x*vel_ob_y - pos_ob_y*vel_ob_x - s*vel_ob_y - ey*xp_dot*cos(epsi) + pos_ob_y*xp_dot*cos(epsi) - pos_ob_x*yp_dot*cos(epsi) + s*yp_dot*cos(epsi) + ey*yp_dot*sin(epsi) - pos_ob_x*xp_dot*sin(epsi) - pos_ob_y*yp_dot*sin(epsi) + s*xp_dot*sin(epsi)))/(m*xp_dot*(1 - ((pos_ob_x - s)*(vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi)) + (ey - pos_ob_y)*(yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi)))^2/(((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)))^(1/2)*((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)^(1/2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)^(3/2));
-        L_t_h_ang_part1 = -((ey*vel_ob_x + pos_ob_x*vel_ob_y - pos_ob_y*vel_ob_x - s*vel_ob_y - ey*xp_dot*cos(epsi) + pos_ob_y*xp_dot*cos(epsi) - pos_ob_x*yp_dot*cos(epsi) + s*yp_dot*cos(epsi) + ey*yp_dot*sin(epsi) - pos_ob_x*xp_dot*sin(epsi) - pos_ob_y*yp_dot*sin(epsi) + s*xp_dot*sin(epsi))*(pos_ob_y*vel_ob_x^3 - pos_ob_x*vel_ob_y^3 - ey*vel_ob_x^3 + s*vel_ob_y^3 - acc_ob_x*pos_ob_x^2*vel_ob_y + acc_ob_y*pos_ob_x^2*vel_ob_x - acc_ob_x*pos_ob_y^2*vel_ob_y + acc_ob_y*pos_ob_y^2*vel_ob_x - acc_ob_x*s^2*vel_ob_y + acc_ob_y*s^2*vel_ob_x - ey*vel_ob_x*vel_ob_y^2 - ey*vel_ob_x*xp_dot^2 - ey*vel_ob_x*yp_dot^2 - pos_ob_x*vel_ob_x^2*vel_ob_y + pos_ob_y*vel_ob_x*vel_ob_y^2 - pos_ob_x*vel_ob_y*xp_dot^2 + pos_ob_y*vel_ob_x*xp_dot^2 + s*vel_ob_x^2*vel_ob_y - pos_ob_x*vel_ob_y*yp_dot^2 + pos_ob_y*vel_ob_x*yp_dot^2 + s*vel_ob_y*xp_dot^2 + s*vel_ob_y*yp_dot^2 - acc_ob_x*ey^2*vel_ob_y + acc_ob_y*ey^2*vel_ob_x + 2*acc_ob_x*ey*pos_ob_y*vel_ob_y - 2*acc_ob_y*ey*pos_ob_y*vel_ob_x + 2*acc_ob_x*pos_ob_x*s*vel_ob_y - 2*acc_ob_y*pos_ob_x*s*vel_ob_x - acc_ob_y*ey^2*xp_dot*cos(epsi) + acc_ob_x*ey^2*yp_dot*cos(epsi) - acc_ob_y*pos_ob_x^2*xp_dot*cos(epsi) - acc_ob_y*pos_ob_y^2*xp_dot*cos(epsi) + acc_ob_x*pos_ob_x^2*yp_dot*cos(epsi) + acc_ob_x*pos_ob_y^2*yp_dot*cos(epsi) - acc_ob_y*s^2*xp_dot*cos(epsi) + acc_ob_x*s^2*yp_dot*cos(epsi) + acc_ob_x*ey^2*xp_dot*sin(epsi) + acc_ob_y*ey^2*yp_dot*sin(epsi) + 2*ey*vel_ob_x^2*xp_dot*cos(epsi) + acc_ob_x*pos_ob_x^2*xp_dot*sin(epsi) + acc_ob_x*pos_ob_y^2*xp_dot*sin(epsi) + acc_ob_y*pos_ob_x^2*yp_dot*sin(epsi) + acc_ob_y*pos_ob_y^2*yp_dot*sin(epsi) + acc_ob_x*s^2*xp_dot*sin(epsi) + acc_ob_y*s^2*yp_dot*sin(epsi) - 2*pos_ob_y*vel_ob_x^2*xp_dot*cos(epsi) + 2*pos_ob_x*vel_ob_y^2*yp_dot*cos(epsi) - 2*s*vel_ob_y^2*yp_dot*cos(epsi) - 2*ey*vel_ob_x^2*yp_dot*sin(epsi) + 2*pos_ob_x*vel_ob_y^2*xp_dot*sin(epsi) + 2*pos_ob_y*vel_ob_x^2*yp_dot*sin(epsi) - 2*s*vel_ob_y^2*xp_dot*sin(epsi) - 2*s*vel_ob_x*vel_ob_y*xp_dot*cos(epsi) + 2*ey*vel_ob_x*vel_ob_y*xp_dot*sin(epsi) - 2*pos_ob_y*vel_ob_x*vel_ob_y*xp_dot*sin(epsi) - 2*pos_ob_x*vel_ob_x*vel_ob_y*yp_dot*sin(epsi) + 2*s*vel_ob_x*vel_ob_y*yp_dot*sin(epsi) + 2*acc_ob_y*ey*pos_ob_y*xp_dot*cos(epsi) - 2*acc_ob_x*ey*pos_ob_y*yp_dot*cos(epsi) + 2*acc_ob_y*pos_ob_x*s*xp_dot*cos(epsi) - 2*acc_ob_x*pos_ob_x*s*yp_dot*cos(epsi) - 2*acc_ob_x*ey*pos_ob_y*xp_dot*sin(epsi) - 2*acc_ob_y*ey*pos_ob_y*yp_dot*sin(epsi) + 2*ey*vel_ob_x*vel_ob_y*yp_dot*cos(epsi) - 2*acc_ob_x*pos_ob_x*s*xp_dot*sin(epsi) - 2*acc_ob_y*pos_ob_x*s*yp_dot*sin(epsi) + 2*pos_ob_x*vel_ob_x*vel_ob_y*xp_dot*cos(epsi) - 2*pos_ob_y*vel_ob_x*vel_ob_y*yp_dot*cos(epsi)))/((1 - ((pos_ob_x - s)*(vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi)) + (ey - pos_ob_y)*(yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi)))^2/(((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)))^(1/2)*((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)^(3/2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)^(3/2));
-        L_g_h_ang_part1 = (2*cf*(vel_ob_x*cos(epsi) - xp_dot + vel_ob_y*sin(epsi))*(ey*vel_ob_x + pos_ob_x*vel_ob_y - pos_ob_y*vel_ob_x - s*vel_ob_y - ey*xp_dot*cos(epsi) + pos_ob_y*xp_dot*cos(epsi) - pos_ob_x*yp_dot*cos(epsi) + s*yp_dot*cos(epsi) + ey*yp_dot*sin(epsi) - pos_ob_x*xp_dot*sin(epsi) - pos_ob_y*yp_dot*sin(epsi) + s*xp_dot*sin(epsi)))/(m*(1 - ((pos_ob_x - s)*(vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi)) + (ey - pos_ob_y)*(yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi)))^2/(((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)))^(1/2)*((pos_ob_x - s)^2 + (ey - pos_ob_y)^2)^(1/2)*((vel_ob_x - xp_dot*cos(epsi) + yp_dot*sin(epsi))^2 + (yp_dot*cos(epsi) - vel_ob_y + xp_dot*sin(epsi))^2)^(3/2));
- */
             double L_f_h_ang_part1 = -((psi_dot - psi_dot_com) 
-                * (pow(xp_dot, 2) + pow(yp_dot, 2) - vel_ob_x * xp_dot * cos(epsi) 
-                    - vel_ob_y * yp_dot * cos(epsi) - vel_ob_y * xp_dot * sin(epsi) 
-                    + vel_ob_x * yp_dot * sin(epsi)) 
-                * (ey * vel_ob_x + pos_ob_x * vel_ob_y - pos_ob_y * vel_ob_x - s * vel_ob_y 
-                    - ey * xp_dot * cos(epsi) + pos_ob_y * xp_dot * cos(epsi) 
-                    - pos_ob_x * yp_dot * cos(epsi) + s * yp_dot * cos(epsi) 
-                    + ey * yp_dot * sin(epsi) - pos_ob_x * xp_dot * sin(epsi) 
-                    - pos_ob_y * yp_dot * sin(epsi) + s * xp_dot * sin(epsi))) 
+                    * (pow(xp_dot, 2) + pow(yp_dot, 2) - vel_ob_x * xp_dot * cos(epsi) - vel_ob_y * yp_dot * cos(epsi) 
+                        - vel_ob_y * xp_dot * sin(epsi) + vel_ob_x * yp_dot * sin(epsi)) 
+                    * (ey * vel_ob_x + pos_ob_x * vel_ob_y - pos_ob_y * vel_ob_x - s * vel_ob_y 
+                        - ey * xp_dot * cos(epsi) + pos_ob_y * xp_dot * cos(epsi) 
+                        - pos_ob_x * yp_dot * cos(epsi) + s * yp_dot * cos(epsi) 
+                        + ey * yp_dot * sin(epsi) - pos_ob_x * xp_dot * sin(epsi) 
+                        - pos_ob_y * yp_dot * sin(epsi) + s * xp_dot * sin(epsi))) 
                 / (sqrt(1 - pow(((pos_ob_x - s) * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)) 
                     + (ey - pos_ob_y) * (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi))), 2) 
-                    / ((pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) * 
-                        (pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
+                    / ((pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                        * (pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
                         + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2))))
                     * sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
-                    * pow(pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
+                        * pow(pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
                         + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2), 1.5)) 
                 - ((ey - pos_ob_y) * (xp_dot * cos(epsi) - yp_dot * sin(epsi)) 
                     * (ey * vel_ob_x + pos_ob_x * vel_ob_y - pos_ob_y * vel_ob_x - s * vel_ob_y 
@@ -174,11 +169,11 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
                         - pos_ob_x * yp_dot * cos(epsi) + s * yp_dot * cos(epsi) 
                         + ey * yp_dot * sin(epsi) - pos_ob_x * xp_dot * sin(epsi) 
                         - pos_ob_y * yp_dot * sin(epsi) + s * xp_dot * sin(epsi)))
-                / (sqrt(1 - pow((pos_ob_x - s) * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)) 
-                    + (ey - pos_ob_y) * (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi)), 2) 
-                    / ((pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
-                        * (pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
-                            + (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2)))) 
+                    / (sqrt(1 - pow((pos_ob_x - s) * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)) 
+                        + (ey - pos_ob_y) * (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi)), 2) 
+                        / ((pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                            * (pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
+                                + (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2)))) 
                 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5) 
                 * sqrt(pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
                     + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2))) 
@@ -213,15 +208,201 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
                     * sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
                     * pow(pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
                         + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2), 1.5));
-            //Mama mia...
-
             // line 269 so far
+            double L_t_h_ang_part1 = -((ey * vel_ob_x + pos_ob_x * vel_ob_y - pos_ob_y * vel_ob_x - s * vel_ob_y 
+                    - ey * xp_dot * cos(epsi) + pos_ob_y * xp_dot * cos(epsi) - pos_ob_x * yp_dot * cos(epsi) 
+                    + s * yp_dot * cos(epsi) + ey * yp_dot * sin(epsi) - pos_ob_x * xp_dot * sin(epsi) 
+                    - pos_ob_y * yp_dot * sin(epsi) + s * xp_dot * sin(epsi)) 
+                * (pos_ob_y * pow(vel_ob_x, 3) - pos_ob_x * pow(vel_ob_y, 3) - ey * pow(vel_ob_x, 3) 
+                    + s * pow(vel_ob_y, 3) - acc_ob_x * pow(pos_ob_x, 2) * vel_ob_y 
+                    + acc_ob_y * pow(pos_ob_x, 2) * vel_ob_x - acc_ob_x * pow(pos_ob_y, 2) * vel_ob_y 
+                    + acc_ob_y * pow(pos_ob_y,2 ) * vel_ob_x - acc_ob_x * pow(s, 2) * vel_ob_y 
+                    + acc_ob_y * pow(s, 2) * vel_ob_x - ey * vel_ob_x * pow(vel_ob_y, 2) 
+                    - ey * vel_ob_x * pow(xp_dot, 2) - ey * vel_ob_x * pow(yp_dot, 2) 
+                    - pos_ob_x * pow(vel_ob_x, 2) * vel_ob_y + pos_ob_y * vel_ob_x * pow(vel_ob_y, 2) 
+                    - pos_ob_x * vel_ob_y * pow(xp_dot, 2) + pos_ob_y * vel_ob_x * pow(xp_dot, 2) 
+                    + s * pow(vel_ob_x, 2) * vel_ob_y - pos_ob_x * vel_ob_y * pow(yp_dot, 2) 
+                    + pos_ob_y * vel_ob_x * pow(yp_dot, 2) + s * vel_ob_y * pow(xp_dot, 2) 
+                    + s * vel_ob_y * pow(yp_dot, 2) - acc_ob_x * pow(ey, 2) * vel_ob_y 
+                    + acc_ob_y * pow(ey, 2) * vel_ob_x + 2 * acc_ob_x * ey * pos_ob_y * vel_ob_y 
+                    - 2 * acc_ob_y * ey * pos_ob_y * vel_ob_x + 2 * acc_ob_x * pos_ob_x * s * vel_ob_y 
+                    - 2 * acc_ob_y * pos_ob_x * s * vel_ob_x - acc_ob_y * pow(ey, 2) * xp_dot * cos(epsi) 
+                    + acc_ob_x * pow(ey, 2) * yp_dot * cos(epsi) - acc_ob_y * pow(pos_ob_x, 2) * xp_dot * cos(epsi) 
+                    - acc_ob_y * pow(pos_ob_y, 2) * xp_dot * cos(epsi) + acc_ob_x * pow(pos_ob_x, 2) * yp_dot * cos(epsi) 
+                    + acc_ob_x * pow(pos_ob_y, 2) * yp_dot * cos(epsi) - acc_ob_y * pow(s, 2) * xp_dot * cos(epsi) 
+                    + acc_ob_x * pow(s, 2) * yp_dot * cos(epsi) + acc_ob_x * pow(ey, 2) * xp_dot * sin(epsi) 
+                    + acc_ob_y * pow(ey, 2) * yp_dot * sin(epsi) + 2 * ey * pow(vel_ob_x, 2) * xp_dot * cos(epsi) 
+                    + acc_ob_x * pow(pos_ob_x, 2) * xp_dot * sin(epsi) + acc_ob_x * pow(pos_ob_y, 2) * xp_dot * sin(epsi) 
+                    + acc_ob_y * pow(pos_ob_x, 2) * yp_dot * sin(epsi) + acc_ob_y * pow(pos_ob_y, 2) * yp_dot * sin(epsi) 
+                    + acc_ob_x * pow(s, 2) * xp_dot * sin(epsi) + acc_ob_y * pow(s, 2) * yp_dot * sin(epsi) 
+                    - 2 * pos_ob_y * pow(vel_ob_x, 2) * xp_dot * cos(epsi) 
+                    + 2 * pos_ob_x * pow(vel_ob_y, 2) * yp_dot * cos(epsi) 
+                    - 2 * s * pow(vel_ob_y, 2) * yp_dot * cos(epsi) - 2 * ey * pow(vel_ob_x, 2) * yp_dot * sin(epsi) 
+                    + 2 * pos_ob_x * pow(vel_ob_y, 2) * xp_dot * sin(epsi) 
+                    + 2 * pos_ob_y * pow(vel_ob_x, 2) * yp_dot * sin(epsi) 
+                    - 2 * s * pow(vel_ob_y, 2) * xp_dot * sin(epsi) - 2 * s * vel_ob_x * vel_ob_y * xp_dot * cos(epsi) 
+                    + 2 * ey * vel_ob_x * vel_ob_y * xp_dot * sin(epsi) 
+                    - 2 * pos_ob_y * vel_ob_x * vel_ob_y * xp_dot * sin(epsi) 
+                    - 2 * pos_ob_x * vel_ob_x * vel_ob_y * yp_dot * sin(epsi) 
+                    + 2 * s * vel_ob_x * vel_ob_y * yp_dot * sin(epsi) + 2 * acc_ob_y * ey * pos_ob_y * xp_dot * cos(epsi) 
+                    - 2 * acc_ob_x * ey * pos_ob_y * yp_dot * cos(epsi) + 2 * acc_ob_y * pos_ob_x * s * xp_dot * cos(epsi) 
+                    - 2 * acc_ob_x * pos_ob_x * s * yp_dot * cos(epsi) - 2 * acc_ob_x * ey * pos_ob_y * xp_dot * sin(epsi) 
+                    - 2 * acc_ob_y * ey * pos_ob_y * yp_dot * sin(epsi) + 2 * ey * vel_ob_x * vel_ob_y * yp_dot * cos(epsi) 
+                    - 2 * acc_ob_x * pos_ob_x * s * xp_dot * sin(epsi) - 2 * acc_ob_y * pos_ob_x * s * yp_dot * sin(epsi) 
+                    + 2 * pos_ob_x * vel_ob_x * vel_ob_y * xp_dot * cos(epsi) 
+                    - 2 * pos_ob_y * vel_ob_x * vel_ob_y * yp_dot * cos(epsi))) 
+                / (sqrt(1 - pow((pos_ob_x - s) * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)) 
+                        + (ey - pos_ob_y) * (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi)), 2) 
+                    / ((pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                        * (pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
+                            + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2)))) 
+                * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5) 
+                * pow(pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
+                    + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2), 1.5));
+            // line 270 so far
+            double L_g_h_ang_part1 = (2 * cf * (vel_ob_x * cos(epsi) - xp_dot + vel_ob_y * sin(epsi)) 
+                    * (ey * vel_ob_x + pos_ob_x * vel_ob_y - pos_ob_y * vel_ob_x - s * vel_ob_y - ey * xp_dot * cos(epsi) 
+                        + pos_ob_y * xp_dot * cos(epsi) - pos_ob_x * yp_dot*cos(epsi) + s * yp_dot * cos(epsi) 
+                        + ey * yp_dot * sin(epsi) - pos_ob_x * xp_dot * sin(epsi) - pos_ob_y * yp_dot * sin(epsi) 
+                        + s * xp_dot * sin(epsi))) 
+                / (m * sqrt(1 - pow((pos_ob_x - s) * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)) 
+                            + (ey - pos_ob_y) * (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi)), 2) 
+                        / ((pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                            * (pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
+                                + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2))))
+                    * sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                    * pow(pow(vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi), 2) 
+                        + pow(yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi), 2), 1.5));
+            // line 271 so far
 
-        }
-        else
+            double L_f_h_ang_part2 = ((ey - pos_ob_y) * (yp_dot * cos(epsi) + xp_dot * sin(epsi)))
+                    / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                - ((pos_ob_x - s) * (xp_dot * cos(epsi) - yp_dot * sin(epsi))) 
+                    / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2));
+            double L_g_h_ang_part2 = 0.0;
+            double L_t_h_ang_part2 = -(ey * vel_ob_y - pos_ob_x * vel_ob_x - pos_ob_y * vel_ob_y + s * vel_ob_x) 
+                / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2));
+            //line 279 so far
+
+            temp_d = - Ds / pow(rel_pos.norm(), 2);
+            double asin_dot = 1 / sqrt(1 - ratio * ratio);
+            double L_f_h_ang = L_f_h_ang_part1 - asin_dot * temp_d * L_f_h_ang_part2;
+            double L_g_h_ang = L_g_h_ang_part1 - asin_dot * temp_d * L_g_h_ang_part2;
+            double L_t_h_ang = L_t_h_ang_part1 - asin_dot * temp_d * L_t_h_ang_part2;
+            // line 288 so far
+
+            A_n_angle_fix(0) = - L_g_h_ang;
+            b_n_angle_fix = b_n_angle_fix = L_f_h_ang + L_t_h_ang + 3 * h_ang;
+            // line 297 so far
+        } // line 303 so far
+
+        bool alert = false;
+        double dis_maxacc_sqr = 2 * a_m * (rel_pos.norm() - Ds);
+        if (dis_maxacc_sqr <= 0)
         {
-
+            alert = true;
+            dead = true;
+            dis_maxacc_sqr = 0.000001;
         }
-    }
+        double h_vel = sqrt(dis_maxacc_sqr) + (rel_pos.adjoint() * rel_vel)(0) / rel_vel.norm();
+        // line 318 so far
+
+        double L_f_h_norm = ((ey - pos_ob_y) * (yp_dot * cos(epsi) + xp_dot * sin(epsi))) 
+                / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+            - ((pos_ob_x - s) * (xp_dot * cos(epsi) - yp_dot * sin(epsi))) 
+                / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2));
+        Eigen::Vector2d L_g_h_norm;
+        L_g_h_norm << 0, 0;
+        double L_t_h_norm = -(ey * vel_ob_y - pos_ob_x * vel_ob_x - pos_ob_y * vel_ob_y + s * vel_ob_x) 
+            / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)); 
+        // line 345 so far
+
+        double L_f_h_vel = (((ey - pos_ob_y) * (xp_dot * cos(epsi) - yp_dot * sin(epsi))) 
+                        /sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                    + ((pos_ob_x - s) * (yp_dot * cos(epsi) + xp_dot * sin(epsi))) 
+                        /sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2))) 
+                * (psi_dot - psi_dot_com) 
+            - (yp_dot * cos(epsi) + xp_dot * sin(epsi)) 
+                * (((ey - pos_ob_y) * (2 * ey - 2 * pos_ob_y) * (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi))) 
+                    / (2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5)) 
+                        - (yp_dot*cos(epsi) - vel_ob_y + xp_dot * sin(epsi)) 
+                    / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y,2 )) 
+                        + ((pos_ob_x - s) * (2 * ey - 2 * pos_ob_y) 
+                            * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi))) 
+                    / ( 2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5)))
+            + (xp_dot * cos(epsi) - yp_dot * sin(epsi)) 
+                * (((2 * pos_ob_x - 2 * s) * (ey - pos_ob_y) * (yp_dot*cos(epsi) - vel_ob_y + xp_dot * sin(epsi))) 
+                    / (2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5)) 
+                        - (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)) 
+                    / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                        + ((2 * pos_ob_x - 2 * s) * (pos_ob_x - s) 
+                            * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)))
+                    / (2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5))) 
+            - ((cos(epsi) * (ey - pos_ob_y)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                    + (sin(epsi) * (pos_ob_x - s)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2))) 
+                * (psi_dot * xp_dot + (psi_dot * (2 * a * cf - 2 * b * cr)) / (m * xp_dot) 
+                    + (yp_dot * (2 * cf + 2 * cr)) / (m * xp_dot)) 
+            - psi_dot * yp_dot * ((cos(epsi) * (pos_ob_x - s)) 
+                    / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                - (sin(epsi) * (ey - pos_ob_y)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)));
+        // line 352 so far
+        Eigen::Vector2d L_g_h_vel;
+        L_g_h_vel << (2 * cf * ((cos(epsi) * (ey - pos_ob_y)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                + (sin(epsi) * (pos_ob_x - s)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2))))/m, 
+            (sin(epsi) * (ey - pos_ob_y)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y,2 )) 
+                - (cos(epsi) * (pos_ob_x - s)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2));
+        // line 353 so far
+        double L_t_h_vel = vel_ob_y * (((ey - pos_ob_y) * (2 * ey - 2 * pos_ob_y) 
+                        * (yp_dot * cos(epsi) - vel_ob_y + xp_dot*sin(epsi))) 
+                    / (2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5)) 
+                - (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi)) 
+                    / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                + ((pos_ob_x - s) * (2 * ey - 2 * pos_ob_y) * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi))) 
+                    / (2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5))) 
+            - vel_ob_x * (((2 * pos_ob_x - 2 * s) * (ey - pos_ob_y) 
+                        * (yp_dot * cos(epsi) - vel_ob_y + xp_dot * sin(epsi))) 
+                    /(2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5)) 
+                - (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi)) 
+                    / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+                + ((2 * pos_ob_x - 2 * s) * (pos_ob_x - s) * (vel_ob_x - xp_dot * cos(epsi) + yp_dot * sin(epsi))) 
+                    /(2 * pow(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2), 1.5))) 
+            - (acc_ob_y * (ey - pos_ob_y)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2)) 
+            + (acc_ob_x * (pos_ob_x - s)) / sqrt(pow(pos_ob_x - s, 2) + pow(ey - pos_ob_y, 2));
+        // line 354 so far
+
+        temp_d = a_m / sqrt(dis_maxacc_sqr);
+        L_f_h_vel += temp_d * L_f_h_norm;
+        L_g_h_vel += temp_d * L_g_h_norm;
+        L_t_h_vel += temp_d * L_t_h_norm;
+
+        Eigen::Vector2d A_n_vel = -L_g_h_vel;
+        double b_n_vel = L_f_h_vel + L_t_h_vel + 3 * h_vel;
+        // line 368 so far
+        
+        Coefficient c;
+        c.norm_relpos = rel_pos.norm();
+        c.h_angle_moving = -2;
+        Eigen::Vector2d temp_v;
+        temp_v << 0, 0;
+        c.A_n_angle_moving = temp_v;
+        c.b_n_angle_moving = 1;
+        c.h_angle_fix = h_ang;
+        c.A_n_angle_fix = A_n_angle_fix;
+        c.b_n_angle_fix = b_n_angle_fix;
+        c.h_dis = h_vel; // needs double-check
+        c.A_n_dis = A_n_vel; // needs double-check
+        c.b_n_dis = b_n_vel; // needs double-check
+        c.alert = alert;
+        c.h_sid_pos = h_sid_pos;
+        c.A_n_side_pos = A_n_side_pos;
+        c.b_n_side_pos = b_n_side_pos;
+        c.h_sid_neg = h_sid_neg;
+        c.A_n_side_neg = A_n_side_neg;
+        c.b_n_side_neg = b_n_side_neg;
+        c.radius = ob_array[i].radius;
+
+        res.push_back(c);
+
+    } // for each ob in ob_array
     return res;
 }
