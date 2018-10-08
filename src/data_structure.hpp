@@ -5,9 +5,11 @@
 *   Revere Lab, Chalmers / GU, 2018
 */
 
+#include <iostream>
+#include <vector>
 #include <Eigen/Dense>
 
-class FB_state // feedback states, line 7-12 in .m file
+class FB_state
 {
 public:
     double xp_dot{0.0};  // longitudinal speed
@@ -18,7 +20,7 @@ public:
     double s{0.0};       // longitudinal position
 };
 
-class Obstacle // line 18-26
+class Obstacle
 {
 public:
     double pos_x{0.0};
@@ -30,7 +32,7 @@ public:
     double radius{0.0};
 };
 
-class Coefficient // the return value "out", line  463-480
+class Coefficient // the return value "out", line 463-480 in constraint_obs~.m
 {
 public:
     double norm_relpos{0.0};
@@ -52,3 +54,13 @@ public:
     double b_n_side_neg{0.0};
     double radius{0.0};
 };
+
+class Output_safety // the return value output_safety.out, line 355-359 in safety_cert~.m
+{
+public:
+    int x;
+};
+
+std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, bool&);
+
+Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>);
