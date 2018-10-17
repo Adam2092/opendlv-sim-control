@@ -58,12 +58,12 @@ public:
 class Output_safety // the return value output_safety.out, line 355-359 in safety_cert~.m
 {
 public:
-    double x[2]{{0.0, 0.0}};
+    double x[2]{0.0, 0.0};
     Coefficient coef;
     double value_min{100000000.0};
     bool hasSolution{false}; // line 298 in safety_cert~.m, INVERSED BOOLEAN VALUE of "nosolution"
 };
 
-std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, bool&);
+std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, bool);
 
-Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, vector<Obstacle>, vector<bool>&);
+Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, std::vector<bool>);
