@@ -11,11 +11,16 @@ epsi = u(4);
 ey= u(5);  %lateral position
 s = u(6);  %logitudinal position 
 
+%20181011:
+steer = u(7);
+acc = u(8);
+
 %reference trajectory
-tra_com = [u(7);u(8);u(9)];  %epsi, ey, s, notice the variables are in this order, velocity and acc are the same 
-tra_com_dot = [u(10);u(11);u(12)];
-tra_com_ddot = [u(13);u(14);u(15)]; 
-time = u(16); 
+tra_com = [u(9);u(10);u(11)];  %epsi, ey, s, notice the variables are in this order, velocity and acc are the same 
+tra_com_dot = [u(12);u(13);u(14)];
+tra_com_ddot = [u(15);u(16);u(17)]; 
+tra_com_dddot = [0; 0; 0];
+time = u(18); 
 
 %constants: 
 a = 1.41; 
@@ -55,7 +60,8 @@ p =Iz/(m*b);
 
 
 %if the output is only the x and y position, 20180815:
-k1= diag([9,3]);
+k1= diag([9,3]); 
+% k1= diag([1,1]); %20181010
 k2=2*diag([1.414, 1.414])*sqrt(k1);    %very important, k2 and k1 must be tuned together. 
 L_f_output = [ yp_dot*cos(epsi) + xp_dot*sin(epsi)
  xp_dot*cos(epsi) - yp_dot*sin(epsi) ];
@@ -66,11 +72,46 @@ L_g_f_output = [[(2*cf*cos(epsi))/m, sin(epsi)]
 u_nom_lin=tra_com_ddot(2:3)-k1*([ ey; s]-tra_com(2:3))-k2*(L_f_output-tra_com_dot(2:3));
 u_nom = inv(L_g_f_output)*(u_nom_lin-L_f_f_output);   %feedback linearization
 
+
+%2018-10-11, consider the actuator dynamics: 
+ka_steer =10;  ka_acc=10;  %the parameters of the actuator dynamics, 
+% syms steer acc; 
+L_F_output = [ yp_dot*cos(epsi) + xp_dot*sin(epsi)
+ xp_dot*cos(epsi) - yp_dot*sin(epsi)];
+
+L_F_F_output =[ sin(epsi)*(acc + psi_dot*yp_dot) + (psi_dot - psi_dot_com)*(xp_dot*cos(epsi) - yp_dot*sin(epsi)) - (cos(epsi)*(m*psi_dot*xp_dot^2 - 2*cf*steer*xp_dot + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m*xp_dot)
+ cos(epsi)*(acc + psi_dot*yp_dot) - (psi_dot - psi_dot_com)*(yp_dot*cos(epsi) + xp_dot*sin(epsi)) + (sin(epsi)*(m*psi_dot*xp_dot^2 - 2*cf*steer*xp_dot + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m*xp_dot)];
+
+L_G_L_F_F_output = [[  (2*cf*ka_steer*cos(epsi))/m, ka_acc*sin(epsi)]
+[ -(2*cf*ka_steer*sin(epsi))/m, ka_acc*cos(epsi)]];
+
+L_F_F_F_output = [ (psi_dot - psi_dot_com)*(cos(epsi)*(acc + psi_dot*yp_dot) - (psi_dot - psi_dot_com)*(yp_dot*cos(epsi) + xp_dot*sin(epsi)) + (sin(epsi)*(m*psi_dot*xp_dot^2 - 2*cf*steer*xp_dot + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m*xp_dot)) - acc*ka_acc*sin(epsi) + ((2*cf*cos(epsi) + 2*cr*cos(epsi) - m*psi_dot_com*xp_dot*sin(epsi))*(m*psi_dot*xp_dot^2 - 2*cf*steer*xp_dot + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m^2*xp_dot^2) - (2*cf*ka_steer*steer*cos(epsi))/m + (cos(epsi)*(acc + psi_dot*yp_dot)*(- m*psi_dot_com*xp_dot^2 + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m*xp_dot^2) + (4*cos(epsi)*(a*cf - b*cr)*(a*cf*yp_dot - b*cr*yp_dot + a^2*cf*psi_dot + b^2*cr*psi_dot - a*cf*steer*xp_dot))/(Iz*m*xp_dot^2)
+ (2*cf*ka_steer*steer*sin(epsi))/m - acc*ka_acc*cos(epsi) - ((2*cf*sin(epsi) + 2*cr*sin(epsi) + m*psi_dot_com*xp_dot*cos(epsi))*(m*psi_dot*xp_dot^2 - 2*cf*steer*xp_dot + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m^2*xp_dot^2) - (psi_dot - psi_dot_com)*(sin(epsi)*(acc + psi_dot*yp_dot) + (psi_dot - psi_dot_com)*(xp_dot*cos(epsi) - yp_dot*sin(epsi)) - (cos(epsi)*(m*psi_dot*xp_dot^2 - 2*cf*steer*xp_dot + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m*xp_dot)) - (sin(epsi)*(acc + psi_dot*yp_dot)*(- m*psi_dot_com*xp_dot^2 + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot))/(m*xp_dot^2) - (4*sin(epsi)*(a*cf - b*cr)*(a*cf*yp_dot - b*cr*yp_dot + a^2*cf*psi_dot + b^2*cr*psi_dot - a*cf*steer*xp_dot))/(Iz*m*xp_dot^2)];
+
+% K =    1.0000    1.6494    2.5098
+k1= diag([1, 1]);
+k2= diag([1.6194, 1.6494]);    %very important, k2 and k1 must be tuned together. 
+k3 = diag([2.5098, 2.5098]);
+
+% 2.2361    3.0187    3.9382
+k1= 5*diag([2.2361, 1*2.2361]);
+k2= 5*diag([3.0187, 1*3.0187]);    %very important, k2 and k1 must be tuned together. 
+k3 =5*diag([3.9382, 1*3.9382]);
+
+u_nom_lin=tra_com_dddot(2:3)-k1*([ ey; s]-tra_com(2:3))-k2*(L_F_output-tra_com_dot(2:3)) ...
+    - k3*(L_F_F_output - tra_com_ddot(2:3));
+u_nom = inv(L_G_L_F_F_output)*(u_nom_lin-L_F_F_F_output);   %feedback linearization
+
 %bound for control
 alpha=[1.0; 4];
 
 min_ = -0.5;
 max_= 0.5;
+
+%20181014
+if(xp_dot<1e-2)
+    xp_dot =1e-2;
+end
 
 delta_min = max([-1; -max_ + (yp_dot + a*psi_dot)/xp_dot ]);
 delta_max = min([1; -min_ + (yp_dot + a*psi_dot)/xp_dot ]);
@@ -86,7 +127,8 @@ flag_bound = 0;
 %% for dynamic obstacles:  
 global results_2;   %output of   constraint_obstacles_dynamics_complex
 % results_2 = constraint_obstacles_dynamics([p_x; p_y; v; psi], time); 
-results_2 = constraint_obstacles_dynamics_complex([xp_dot; yp_dot; psi_dot; epsi; ey; s], time, traj_ob ); 
+%20181018 add: 
+results_2 = constraint_obstacles_dynamics_complex([xp_dot; yp_dot; psi_dot; epsi; ey; s; steer; acc], time, traj_ob ); 
 
 no_ob_active = size(results_2,2); 
 global beta_2;   %initial value is 0, 100-by-1
@@ -128,33 +170,33 @@ for aa = 1:no_ob_active
         %if does not point to the obstacle:
     
         if  (results_2(aa).h_angle_fix>= -theta_d_big)   %pointing constraint
-            slack_mult(1, no_ob_active) = 1;   %active
+            slack_mult(1, aa) = 1;   %active
         else
-            slack_mult(1, no_ob_active) = 0;
+            slack_mult(1, aa) = 0;
         end
 
         if (  results_2(aa).h_dis >= 0)   %distance constraint
-            slack_mult(2, no_ob_active) = 1;   %active
+            slack_mult(2, aa) = 1;   %active
         else
-            slack_mult(2, no_ob_active) = 0 ;
+            slack_mult(2, aa) = 0 ;
         end 
-        if (  slack_mult(1, no_ob_active) == 0) && (  slack_mult(2, no_ob_active) == 0)
-            slack_mult(2, no_ob_active) =1; %at least one should be 1 
+        if (  slack_mult(1, aa) == 0) && (  slack_mult(2, aa) == 0)
+            slack_mult(2, aa) =1; %at least one should be 1 
             alert = 1;
         end
     
-        nu_combine = nu_combine*sum(slack_mult(:,no_ob_active));   %number of the possible conditions
+        nu_combine = nu_combine*sum(slack_mult(:,aa));   %number of the possible conditions
     
         row_order = size(order,1);
         if (row_order == 0)
             row_order = 1;
         end
         
-        if(slack_mult(1, no_ob_active) == 1) && (slack_mult(2, no_ob_active) ==1)
+        if(slack_mult(1, aa) == 1) && (slack_mult(2, aa) ==1)
             order = [order, ones(row_order, 1); order, 2*ones(row_order, 1)];  %record the place 
-        elseif(slack_mult(1, no_ob_active) == 1) && (slack_mult(2, no_ob_active) == 0)
+        elseif(slack_mult(1, aa) == 1) && (slack_mult(2, aa) == 0)
             order = [order, ones(row_order, 1)];  %record the place 
-        elseif(slack_mult(1, no_ob_active) == 0) && (slack_mult(2, no_ob_active) == 1)
+        elseif(slack_mult(1, aa) == 0) && (slack_mult(2, aa) == 1)
             order = [order, 2*ones(row_order, 1)];  %record the place 
         end
     else
@@ -218,6 +260,7 @@ for i_combine = 1:nu_combine
      if (size(A_n_and,1)>0)
         if(flag_bound ==0)
 %              [x, FVAL, EXITFLAG] = quadprog(H, f2, A_n_and, b_n_and, [], [], -alpha, alpha, [], optoption_1);
+                A_n_and(abs(A_n_and)<1e-4) = 0;  b_n_and(abs(b_n_and)<1e-4) = 0;  %prevent error, found on 20181010
             [x, FVAL, EXITFLAG] = quadprog(H, f2, A_n_and, b_n_and, [], [], [delta_min; -alpha(2)], [delta_max; alpha(2)], [], optoption_1);
         else
             [x, FVAL, EXITFLAG] = quadprog(H, f2, A_n_and, b_n_and, [], [], [], [], [], optoption_1);
@@ -263,6 +306,8 @@ for i_combine = 1:nu_combine
         if(flag_bound ==0)
 %             [x, FVAL, EXITFLAG] = quadprog(H, f2, A_n, b_n, [], [], -alpha-u_nom, alpha-u_nom, [], optoption_1);
 %             [x, FVAL, EXITFLAG] = quadprog(H, f2, A_n, b_n, [], [], -alpha, alpha, [], optoption_1);
+
+                A_n(abs(A_n)<1e-4) = 0;  b_n(abs(b_n)<1e-4) = 0;  %prevent error, found on 20181010
             [x, FVAL, EXITFLAG] = quadprog(H, f2, A_n, b_n, [], [], [delta_min; -alpha(2)], [delta_max; alpha(2)], [], optoption_1);
         else
             [x, FVAL, EXITFLAG] = quadprog(H, f2, A_n, b_n, [], [], [], [], [], optoption_1);
@@ -288,6 +333,7 @@ for i_combine = 1:nu_combine
 end
 
 global dead; 
+global brake_flag brake_flag_pre state_brakini; %initial time of brake 
 % the output: 
 if (value_min~=100000000) && (alert==0) &&(dead == 0)
 % if (max_delta_lb<0)
@@ -296,14 +342,39 @@ if (value_min~=100000000) && (alert==0) &&(dead == 0)
 %      A_min = A_n; 
 %      b_min = b_n;
     output_safety.nosolution = 0;
+ 
+    brake_flag=0;  %not brake
+  
 else
     %no solution exsits, brake  
-    out = [0; -alpha(2)];
+    
     output_safety.nosolution = 1;
+    
+    %20181014:
+    brake_flag = 1; %brake 
+    if (brake_flag_pre==0)&&(brake_flag==1)
+        %record initial state for braking:
+        state_brakini = [xp_dot; yp_dot; psi_dot; epsi; ey; s; steer; acc];  
+    end
+    %braking control: 
+    epsi0 = atan(state_brakini(2)/state_brakini(1)) + state_brakini(4);
+    am = -alpha(2);
+    component1 = [ -(m*psi_dot_com*xp_dot^2 + 2*cf*yp_dot + 2*cr*yp_dot + 2*a*cf*psi_dot - 2*b*cr*psi_dot)/(2*cf*xp_dot)
+                                                                                    psi_dot_com*yp_dot ];
+    component2 =  [m/2/cf*am*sin(epsi0-epsi); am*cos(epsi-epsi0)];
+
+    out = component2-component1;        
+%     out = [0; -alpha(2)];
 end
 
+% if (brake_flag_pre==0)&&(brake_flag==1)
+%     %record initial state for braking:
+%     state_brakini = [xp_dot; yp_dot; psi_dot; epsi; ey; s; steer; acc];     
+% end
+    
+brake_flag_pre = brake_flag;
 
-
+% out = u_nom; %tunning, directly output the baseline control 
 
 
 
@@ -359,4 +430,3 @@ output_safety.out = [out; ...
     results_2(1).h_angle_fix; results_2(1).h_angle_moving;  results_2(1).h_dis; beta_2(1); value_min];
 % output_safety = [out; h_move_angle; A_n(1,1); A_n(1,2); b_n(1); zeros(5,1)];
  
-
