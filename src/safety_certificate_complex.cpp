@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 
 #include "data_structure.hpp"
-#include "qpOASES.hpp"
+#include "qpOASES/qpOASES.hpp"
 
 using namespace std;
 
@@ -121,10 +121,9 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
     }
     // line 167 so far
 
-    unsigned int value_min = 100000000;
+    double value_min = 100000000;
     // x_min = [0;0];
-
-    
+    double x_min[2] = {0.0, 0.0};
 
     for (int i = 0; i < nu_combine; i++) // i <-> i_combine in .m file
     {
@@ -133,6 +132,8 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
 
         A_n_and.push_back(results_2[0].A_n_side_pos);
         A_n_and.push_back(results_2[0].A_n_side_neg);
+        b_n_and.push_back(results_2[0].b_n_side_pos);
+        b_n_and.push_back(results_2[0].b_n_side_neg);
 
         for (int j = 0; j < no_ob_active; j++) // j <-> aa in .m file
         {
@@ -166,7 +167,106 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
         } // for (j) 
         // line 211 so far
 
-    }
+        BEGIN_NAMESPACE_QPOASES
+        SQProblem qp(2, 1);
+        real_t H[4] = {1.0, 0.0, 0.0, 1.0};
+        real_t f2[2] = {-2 * u_nom(0), -2 * u_nom(1)};
+        real_t rtA_n_and[A_n_and.size() * 2], rtb_n_and[b_n_and.size()];
+        real_t *rtNullprt = NULL;
+        real_t rtOut[2];
+        for (int i = 0; i < A_n_and.size(); i++)
+        {
+            rtA_n_and[2 * i] = A_n_and[i][0];
+            rtA_n_and[2 * i + 1] = A_n_and[i][1];
+        }
+        for (int i = 0; i < b_n_and.size(); i++)
+            rtb_n_and[i] = b_n_and[i];
+        real_t rtlb[2]{delta_min, -alpha(1)}, rtub[2]{delta_max, alpha(1)};
+        int nWSR1 = 10;
+        if (A_n_and.size() > 0)
+        {
+            if (!flag_bound) 
+                qp.init(H, f2, rtA_n_and, rtlb, rtub, rtNullprt, rtb_n_and, nWSR, 0);
+            // (Currently) NEVER goes to "else"
+            qp.getPrimalSolution(rtOut);
+            // line 224 so far
+            if (!qp.isSolved())
+            {
+                A_n_and.clear();
+                b_n_and.clear();
+                A_n_and.push_back(results_2[0].A_n_side_pos);
+                A_n_and.push_back(results_2[0].A_n_side_neg);
+                b_n_and.push_back(results_2[0].b_n_side_pos);
+                b_n_and.push_back(results_2[0].b_n_side_neg);
+                for (int j = 0; j < no_ob_active; j++) // j <-> aa in .m file
+                {
+                    if (!beta_2[j])
+                    {
+                        if (0 == j)
+                        {
+                            A_n_and.push_back(results_2[j].A_n_angle_fix);
+                            A_n_and.push_back(results_2[j].A_n_dis);
+                            b_n_and.push_back(results_2[j].b_n_angle_fix);
+                            b_n_and.push_back(results_2[j].b_n_dis);
+                        }
+                        else
+                        {
+                            A_n_and.push_back(results_2[j].A_n_dis);
+                            b_n_and.push_back(results_2[j].b_n_dis);
+                        }
+                    }
+                    else if (results_2[j].h_angle_moving > shreshold_movingangle)
+                    {
+                        A_n_and.push_back(results_2[j].A_n_angle_fix);
+                        A_n_and.push_back(results_2[j].A_n_angle_moving);
+                        b_n_and.push_back(results_2[j].b_n_angle_fix);
+                        b_n_and.push_back(results_2[j].b_n_angle_moving);
+                    } 
+                } // for (j) 
+            } // if (!isSolved)
+        }// if (size > 0)
+        // line 251 so far
 
+        A_n_and.insert(A_n_and.end(), A_n_or.begin(), A_n_or.end());
+        b_n_and.insert(b_n_and.end(), b_n_or.begin(), b_n_or.end());
+
+        real_t rtA_new[A_n_and.size() * 2], rtb_new[b_n_and.size()];
+        for (int i = 0; i < A_n_and.size(); i++)
+        {
+            rtA_new[2 * i] = A_n_and[i][0];
+            rtA_new[2 * i + 1] = A_n_and[i][1];
+        }
+        for (int i = 0; i < b_n_and.size(); i++)
+            rtb_new[i] = b_n_and[i];
+        qp.init(H, f2, rtA_new, rtlb, rtub, rtNullprt, rtb_new, nWSR, 0);
+        // line 269 so far
+        qp.getPrimalSolution(rtOut);
+        double FVAL = (qp.isSolved()) ? (double)(qp.getObjVal()) : 100000000.0;
+
+        if (FVAL < value_min)
+        {
+            value_min = FVAL;
+            x_min[0] = rtOut[0];
+            x_min[1] = rtOut[1];
+            // Removed unused matrices A_min and b_min
+        }
+        END_NAMESPACE_QPOASES
+    } // for (i = 0 to nu_combine)
+    // line 288 so far
+
+    if((value_min < 100000000.0) && (!alert) && (!dead))
+    {
+        out.x[0] = x_min[0];
+        out.x[1] = x_min[1];
+        out.hasSolution = true;
+    }
+    else
+    {
+        out.x[0] = 0.0;
+        out.x[1] = alpha(1);
+        out.hasSolution = flase;
+    }
+    out.value_min = value_min;
+    out.coef = results_2[0];
     return out;
 }
