@@ -18,6 +18,8 @@ public:
     double epsi{0.0};    //
     double ey{0.0};      // lateral position
     double s{0.0};       // longitudinal position
+    double steer{0.0};
+    double acc{0.0};
 };
 
 class Obstacle
