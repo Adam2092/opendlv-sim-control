@@ -9,7 +9,8 @@
 
 using namespace std;
 
-Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d> tra, vector<Obstacle> traj_ob, vector<bool> &beta_2)
+Output_safety safety_certificate_complex
+(FB_state u, std::vector<Eigen::Vector3d> tra, vector<Obstacle> traj_ob, vector<bool> &beta_2, bool& brake_flag, FB_state& state_brakini)
 {
     Output_safety out;
 
@@ -289,12 +290,19 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
         out.x[0] = x_min[0];
         out.x[1] = x_min[1];
         out.hasSolution = true;
+        brake_flag = false;
     }
     else
     {
-        out.x[0] = 0.0;
-        out.x[1] = alpha(1);
         out.hasSolution = false;
+        if (false == brake_flag) state_brakini = u;
+        double tempEpsi = atan(yp_dot / xp_dot) + epsi;
+        double am = -alpha(1);
+        out.x[0] = m * am * sin(tempEpsi - epsi) / (2 * cf) 
+            + (m * psi_dot_com * pow(xp_dot, 2) + 2 * yp_dot * (cf + cr) + 2 * psi_dot * (a * cf + b * cr))
+                / (2 * cf * xp_dot);
+        out.x[1] = am * cos (epsi - tempEpsi) - psi_dot_com * yp_dot;
+        brake_flag = true;
     }
     out.value_min = value_min;
     out.coef = results_2[0];

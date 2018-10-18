@@ -68,4 +68,4 @@ public:
 
 std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, bool);
 
-Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, std::vector<bool>);
+Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, std::vector<bool>, bool, FB_state);
