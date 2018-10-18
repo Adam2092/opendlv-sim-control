@@ -15,48 +15,77 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
 
     double xp_dot = u.xp_dot, yp_dot = u.yp_dot, psi_dot = u.psi_dot;
     double epsi = u.epsi, ey = u.ey, s = u.s; 
+    double steer = u.steer, acc = u.acc;
 
     Eigen::Vector3d tra_com = tra[0], tra_com_dot = tra[1], tra_com_ddot = tra[2];
+    // Eigen::Vector3d tra_com_dddot; // unused
+    // tra_com_dddot << 0, 0, 0; // unused
 
     // constants
     double a = 1.41, b = 1.576, mu = 0.5, Fzf = 21940.0/2, Fzr = 21940.0/2;
     double cf = 65000.0, cr = 65000.0, m = 2194.0, Iz = 4770.0;
     double psi_dot_com = 0.0, p = Iz / (m * b);
-    // line 31 so far
 
-    Eigen::Matrix2d k1, k2;
-    k1 << 9, 0, 0, 3;
-    k2 << 6 * sqrt(2), 0, 0, 2 * sqrt(6);
+    Eigen::Vector2d L_F_output, L_F_F_output;
+    double ka_steer = 10.0, ka_acc = 10.0;
 
-    Eigen::Vector2d L_f_out, L_f_f_output;
-    L_f_out << yp_dot * cos(epsi) + xp_dot * sin(epsi), xp_dot * cos(epsi) - yp_dot * sin(epsi);
-    double tempD = (psi_dot * xp_dot + (psi_dot * 2 * (a * cf - b * cr)) / (m * xp_dot) 
-        + (yp_dot * 2 * (cf + cr)) / (m * xp_dot));
+    L_F_output << yp_dot * cos(epsi) + xp_dot * sin(epsi), xp_dot * cos(epsi) - yp_dot * sin(epsi);
+
     double err_psi_dot = psi_dot - psi_dot_com;
-    L_f_f_output << err_psi_dot * (xp_dot * cos(epsi) - yp_dot * sin(epsi)) 
-                        - cos(epsi) * tempD + psi_dot * yp_dot * sin(epsi),
-                    sin(epsi) * tempD - err_psi_dot * (yp_dot * cos(epsi) + xp_dot * sin(epsi)) 
-                        + psi_dot * yp_dot * cos(epsi);
+    double tempD1 = acc + psi_dot * yp_dot;
+    double tempD2 = (m * psi_dot * pow(xp_dot, 2) + 2 * cf * (-steer * xp_dot + yp_dot + a * psi_dot) + 2 * cr * (yp_dot - b * psi_dot)) / (m * xp_dot);
+    L_F_F_output << sin(epsi) * tempD1 + err_psi_dot * (xp_dot * cos(epsi) - yp_dot * sin(epsi)) - cos(epsi) * tempD2,
+                    cos(epsi) * tempD1 - err_psi_dot * (yp_dot * cos(epsi) + xp_dot * sin(epsi)) + sin(epsi) * tempD2;
 
-    Eigen::Matrix2d L_g_f_output;
-    L_g_f_output << 2 * cf * cos(epsi) / m, sin(epsi), -2 * cf * sin(epsi) / m, cos(epsi);
+    Eigen::Matrix2d L_G_L_F_F_output;
+    L_G_L_F_F_output << 2 * cf * ka_steer * cos(epsi) / m, 
+        ka_acc * sin(epsi), 
+        -2 * cf * ka_steer * sin(epsi) / m, 
+        ka_acc * cos(epsi);
+
+    Eigen::Vector2d L_F_F_F_output;
+    L_F_F_F_output << err_psi_dot * cos(epsi) * tempD1 - err_psi_dot * (yp_dot * cos(epsi) + xp_dot * sin(epsi))
+                        + sin(epsi) * tempD2 - acc * ka_acc * sin(epsi) 
+                        + (2 * cos(epsi) * (cf + cr) - m * psi_dot_com * xp_dot * sin(epsi)) * tempD2 / (m * xp_dot)
+                        - 2 * cf * ka_steer * steer * cos(epsi) / m
+                        + cos(epsi) * tempD1 
+                            * (-m * psi_dot_com * pow(xp_dot, 2) + 2 * yp_dot * (cf + cr) + 2 * psi_dot * (a * cf - b * cr))
+                            / (m * pow(xp_dot, 2))
+                        + 4 * cos(epsi) * (a * cf - b * cr) 
+                            * (a * cf * (yp_dot + a * psi_dot - steer * xp_dot) - b * cr * (yp_dot - b * psi_dot))
+                            / (Iz * m * pow(xp_dot, 2)),
+                    2 * cf * ka_steer * steer * sin(epsi) / m
+                        - (2 * sin(epsi) * (cf + cr) + m * psi_dot_com * xp_dot * cos(epsi)) * tempD2 / (m * xp_dot)
+                        - err_psi_dot * (sin(epsi) * tempD1 + err_psi_dot * (xp_dot * cos(epsi) - yp_dot * sin(epsi)) - cos(epsi) * tempD2)
+                        - sin(epsi) * tempD1 
+                            * (-m * psi_dot_com * pow(xp_dot, 2) + 2 * yp_dot * (cf + cr) + 2 * psi_dot * (a * cf - b * cr))
+                            / (m * pow(xp_dot, 2)) 
+                        - 4 * sin(epsi) * (a * cf - b * cr) 
+                            * (a * cf * (yp_dot + a * psi_dot - steer * xp_dot) - b * cr * (yp_dot - b * psi_dot))
+                            / (Iz * m * pow(xp_dot, 2));
+
+    Eigen::Matrix2d k1, k2, k3;
+    k1 << 5 * 2.2361, 0, 0, 5 * 2.2361;
+    k2 << 5 * 3.0187, 0, 0, 5 * 3.0187;
+    k3 << 5 * 3.9382, 0, 0, 5 * 3.9382;
 
     Eigen::Vector2d u_nom_lin, u_nom;
-    //u_nom_lin=tra_com_ddot(2:3)-k1*([ ey; s]-tra_com(2:3))-k2*(L_f_output-tra_com_dot(2:3));
     Eigen::Vector2d tempV2d, tempTail0, tempTail1, tempTail2;
     tempV2d << ey, s;
     tempTail0 << tra_com(1), tra_com(2);
     tempTail1 << tra_com_dot(1), tra_com_dot(2);
     tempTail2 << tra_com_ddot(1), tra_com_ddot(2);
-    // u_nom_lin = tra_com_ddot.tail(2) - k1 * (tempV2d - tra_com.tail(2)) - k2 * (L_g_f_output - tra_com_dot.tail(2));
-    u_nom_lin = tempTail2 - k1 * (tempV2d - tempTail0) - k2 * (tempV2d - tempTail1);
-    // line 67 so far
+    // tra_com_dddot is all-zero, omitted
+    u_nom_lin = - k1 * ((tempV2d - tempTail0) - k2 * (L_F_output - tempTail1) - k3 * (L_F_F_output - tempTail2));
+    u_nom = L_G_L_F_F_output.inverse() * (u_nom_lin - L_F_F_F_output);
+
+    if (xp_dot < 1e-2) xp_dot = 1e-2;
 
     Eigen::Vector2d alpha;
     alpha << 1.0, 4.0;
-    tempD = (yp_dot + a * psi_dot) / xp_dot;
-    double delta_min = (tempD - 0.5 > -1.)? tempD - 0.5 : -1.0;
-    double delta_max = (tempD + 0.5 < 1.0)? tempD + 0.5 : 1.0;
+    tempD1 = (yp_dot + a * psi_dot) / xp_dot;
+    double delta_min = (tempD1 - 0.5 > -1.)? tempD1 - 0.5 : -1.0;
+    double delta_max = (tempD1 + 0.5 < 1.0)? tempD1 + 0.5 : 1.0;
 
     bool flag_bound = false, dead = false, alert = false;
     // line 83 so far
@@ -123,9 +152,8 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
             }
         }
     }
-    // line 167 so far
 
-    double value_min = 100000000;
+    double value_min = 1.0e8;
     // x_min = [0;0];
     double x_min[2] = {0.0, 0.0};
 
@@ -169,7 +197,7 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
                 }
             }
         } // for (j) 
-        // line 211 so far
+
         {
             using namespace qpOASES;
             SQProblem qp(2, 1);
@@ -180,11 +208,11 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
             real_t rtOut[2];
             for (int i = 0; i < A_n_and.size(); i++)
             {
-                rtA_n_and[2 * i] = A_n_and[i][0];
-                rtA_n_and[2 * i + 1] = A_n_and[i][1];
+                rtA_n_and[2 * i] = (abs(A_n_and[i][0]) < 1e-4) ? 0 : A_n_and[i][0];
+                rtA_n_and[2 * i + 1] = (abs(A_n_and[i][1]) < 1e-4) ? 0 : A_n_and[i][1];
             }
             for (int i = 0; i < b_n_and.size(); i++)
-                rtb_n_and[i] = b_n_and[i];
+                rtb_n_and[i] = (abs(b_n_and[i]) < 1e-4) ? 0 : b_n_and[i];
             real_t rtlb[2]{delta_min, -alpha(1)}, rtub[2]{delta_max, alpha(1)};
             int nWSR = 10;
             if (A_n_and.size() > 0)
@@ -193,7 +221,6 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
                     qp.init(H, f2, rtA_n_and, rtlb, rtub, rtNullprt, rtb_n_and, nWSR, 0);
                 // (Currently) NEVER goes to "else"
                 qp.getPrimalSolution(rtOut);
-                // line 224 so far
                 if (!qp.isSolved())
                 {
                     A_n_and.clear();
@@ -229,7 +256,6 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
                     } // for (j) 
                 } // if (!isSolved)
             }// if (size > 0)
-            // line 251 so far
 
             A_n_and.insert(A_n_and.end(), A_n_or.begin(), A_n_or.end());
             b_n_and.insert(b_n_and.end(), b_n_or.begin(), b_n_or.end());
@@ -237,15 +263,15 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
             real_t rtA_new[A_n_and.size() * 2], rtb_new[b_n_and.size()];
             for (int i = 0; i < A_n_and.size(); i++)
             {
-                rtA_new[2 * i] = A_n_and[i][0];
-                rtA_new[2 * i + 1] = A_n_and[i][1];
+                rtA_new[2 * i] = (abs(A_n_and[i][0]) < 1e-4) ? 0 : A_n_and[i][0];
+                rtA_new[2 * i + 1] = (abs(A_n_and[i][1]) < 1e-4) ? 0 : A_n_and[i][1];
             }
             for (int i = 0; i < b_n_and.size(); i++)
-                rtb_new[i] = b_n_and[i];
+                rtb_new[i] = (abs(b_n_and[i]) < 1e-4) ? 0 : b_n_and[i];
             qp.init(H, f2, rtA_new, rtlb, rtub, rtNullprt, rtb_new, nWSR, 0);
             // line 269 so far
             qp.getPrimalSolution(rtOut);
-            double FVAL = (qp.isSolved()) ? (double)(qp.getObjVal()) : 100000000.0;
+            double FVAL = (qp.isSolved()) ? (double)(qp.getObjVal()) : (double)1e8;
 
             if (FVAL < value_min)
             {
@@ -258,7 +284,7 @@ Output_safety safety_certificate_complex(FB_state u, std::vector<Eigen::Vector3d
     } // for (i = 0 to nu_combine)
     // line 288 so far
 
-    if((value_min < 100000000.0) && (!alert) && (!dead))
+    if((value_min < 1e8) && (!alert) && (!dead))
     {
         out.x[0] = x_min[0];
         out.x[1] = x_min[1];
