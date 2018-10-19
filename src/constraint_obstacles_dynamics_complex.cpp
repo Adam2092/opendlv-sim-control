@@ -8,7 +8,7 @@
 
 using namespace std;
 
-vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obstacle> traj_ob, bool &dead)
+vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obstacle> traj_ob, Global_variables& gl)
 {
     vector<Coefficient> res{};
     double xp_dot = u.xp_dot, yp_dot = u.yp_dot, psi_dot = u.psi_dot;
@@ -49,7 +49,7 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
             ob_array[1].pos_x += (abs(ob_array[1].pos_x) >= (abs(ob_array[1].pos_y))) ? -0.01 : 0.01;
     }
     
-    dead = false;
+    gl.dead = false;
     
     // parameters and constants
     double ck = 1.0, ey_pos = 3.2, ey_neg = -3.2, a_m = 4.0;
@@ -102,7 +102,7 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
         A_n_side_neg = -L_g_h_sid_neg;
         b_n_side_neg = L_f_h_sid_neg + 0.5 * h_sid_neg;
     }
-    if (abs(ey) >= 3.7) dead = true;
+    if (abs(ey) >= 3.7) gl.dead = true;
     // line 171 so far
 
     for (int i = 0; i < ob_array.size(); i++)
@@ -138,7 +138,7 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
             if (ratio >= 1)
             {
                 ratio = 0.9999999;
-                dead = true;
+                gl.dead = true;
             }
             h_ang = rel_ang - asin(ratio);
             // line 238 so far
@@ -301,7 +301,7 @@ vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obs
         if (dis_maxacc_sqr <= 0)
         {
             alert = true;
-            dead = true;
+            gl.dead = true;
             dis_maxacc_sqr = 0.000001;
         }
         double h_vel = sqrt(dis_maxacc_sqr) + (rel_pos.adjoint() * rel_vel)(0) / rel_vel.norm();

@@ -67,8 +67,17 @@ public:
     bool hasSolution{false}; // line 298 in safety_cert~.m, INVERSED BOOLEAN VALUE of "nosolution"
 };
 
-std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, bool);
+class Global_variables
+{
+public:
+    bool dead;
+    bool break_flag;
+    vector<bool> beta_2;
+    FB_state state_brakeini;
+}
 
-Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, std::vector<bool>, bool, FB_state);
+std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, Global_variables);
+
+Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, Global_variables);
 
 void bicycle_model(double);

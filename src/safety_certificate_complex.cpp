@@ -10,8 +10,9 @@
 using namespace std;
 
 Output_safety safety_certificate_complex
-(FB_state u, std::vector<Eigen::Vector3d> tra, vector<Obstacle> traj_ob, vector<bool> &beta_2, bool& brake_flag, FB_state& state_brakini)
+(FB_state u, std::vector<Eigen::Vector3d> tra, vector<Obstacle> traj_ob, Global_variables& gl)
 {
+    // vector<bool> &beta_2, bool& brake_flag, FB_state& state_brakini
     Output_safety out;
 
     double xp_dot = u.xp_dot, yp_dot = u.yp_dot, psi_dot = u.psi_dot;
@@ -106,14 +107,14 @@ Output_safety safety_certificate_complex
         double theta_d_small = theta_d_big / 1000;
 
         // TODO: double-check if beta_2 is initialized as "all false"
-        if ((!beta_2[i]) && (results_2[i].h_angle_fix > -theta_d_small)) beta_2[i] = true;
-        else if (beta_2[i] && (results_2[i].h_angle_fix <= -theta_d_big)) beta_2[i] = false;
+        if ((!gl.beta_2[i]) && (results_2[i].h_angle_fix > -theta_d_small)) gl.beta_2[i] = true;
+        else if (gl.beta_2[i] && (results_2[i].h_angle_fix <= -theta_d_big)) gl.beta_2[i] = false;
 
         if (results_2[i].alert) alert = true;
         // line 112 so far
 
 
-        if (beta_2[i] && (results_2[i].h_angle_moving <= shreshold_movingangle))
+        if (gl.beta_2[i] && (results_2[i].h_angle_moving <= shreshold_movingangle))
         {
             theta_d_small = theta_d_big / 2;
             slack_mult(0, i) = (results_2[i].h_angle_fix >= -theta_d_big) ? 1 : 0;
@@ -170,7 +171,7 @@ Output_safety safety_certificate_complex
 
         for (int j = 0; j < no_ob_active; j++) // j <-> aa in .m file
         {
-            if (!beta_2[j])
+            if (!gl.beta_2[j])
             {
                 A_n_and.push_back(results_2[j].A_n_angle_fix);
                 A_n_and.push_back(results_2[j].A_n_dis);
@@ -232,7 +233,7 @@ Output_safety safety_certificate_complex
                     b_n_and.push_back(results_2[0].b_n_side_neg);
                     for (int j = 0; j < no_ob_active; j++) // j <-> aa in .m file
                     {
-                        if (!beta_2[j])
+                        if (!gl.beta_2[j])
                         {
                             if (0 == j)
                             {
@@ -289,19 +290,19 @@ Output_safety safety_certificate_complex
     {
         out.x <<  x_min[0], x_min[1];
         out.hasSolution = true;
-        brake_flag = false;
+        gl.brake_flag = false;
     }
     else
     {
         out.hasSolution = false;
-        if (false == brake_flag) state_brakini = u;
+        if (false == gl.brake_flag) gl.state_brakini = u;
         double tempEpsi = atan(yp_dot / xp_dot) + epsi;
         double am = -alpha(1);
         out.x(0) = m * am * sin(tempEpsi - epsi) / (2 * cf) 
             + (m * psi_dot_com * pow(xp_dot, 2) + 2 * yp_dot * (cf + cr) + 2 * psi_dot * (a * cf + b * cr))
                 / (2 * cf * xp_dot);
         out.x(1) = am * cos (epsi - tempEpsi) - psi_dot_com * yp_dot;
-        brake_flag = true;
+        gl.brake_flag = true;
     }
     out.value_min = value_min;
     out.coef = results_2[0];
