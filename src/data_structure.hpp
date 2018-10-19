@@ -61,7 +61,7 @@ public:
 class Output_safety // the return value output_safety.out, line 355-359 in safety_cert~.m
 {
 public:
-    double x[2]{0.0, 0.0};
+    Eigen::Vector2d x;
     Coefficient coef;
     double value_min{100000000.0};
     bool hasSolution{false}; // line 298 in safety_cert~.m, INVERSED BOOLEAN VALUE of "nosolution"
