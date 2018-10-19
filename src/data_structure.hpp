@@ -20,6 +20,7 @@ public:
     double s{0.0};       // longitudinal position
     double steer{0.0};
     double acc{0.0};
+    FB_state(double, double, double, double, double, double, double, double);
 };
 
 class Obstacle
@@ -69,3 +70,5 @@ public:
 std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, bool);
 
 Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, std::vector<bool>, bool, FB_state);
+
+void bicycle_model(double);
