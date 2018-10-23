@@ -70,14 +70,38 @@ public:
 class Global_variables
 {
 public:
-    bool dead;
-    bool break_flag;
+    int scale;
+    Eigen::Vector2d u_global;
+    int scale_tracking;
+    Eigen::Vector2d u_tracking_global;
+    int scale_record;
+
+    Eigen::Vector3d tra_com_pre, tra_com_dot_pre, tra_com_ddot_pre;
+
+    bool brake_flag, brake_flag_pre;
+    bool nosolution;
+
+    // int no_ob;
+    /* vector pos_ob_array_pre, radius_pre; */ // Dynamic size, not to be global
+
     vector<bool> beta_2;
+    double dt;
+
+    vector<double> t_ctrl;
+    vector<Eigen::VectorXd> u_ctrl;
+
+    FB_state trajd;
+
+    // Unlisted global variables
+    bool dead;
     FB_state state_brakeini;
+    
 }
 
 std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, Global_variables);
 
 Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, Global_variables);
+
+Eigen::Vector2d virtual_control(FB_state, std::vector<Eigen::Vector3d>, vector<Obstacle>, Global_variables)
 
 void bicycle_model(double);
