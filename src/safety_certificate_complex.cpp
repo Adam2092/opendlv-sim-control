@@ -10,7 +10,7 @@
 using namespace std;
 
 Output_safety safety_certificate_complex
-(FB_state u, std::vector<Eigen::Vector3d> tra, vector<Obstacle> traj_ob, Global_variables& gl)
+(FB_state u, vector<Obstacle> traj_ob, Global_variables& gl)
 {
     // vector<bool> &beta_2, bool& brake_flag, FB_state& state_brakini
     Output_safety out;
@@ -19,7 +19,10 @@ Output_safety safety_certificate_complex
     double epsi = u.epsi, ey = u.ey, s = u.s; 
     double steer = u.steer, acc = u.acc;
 
-    Eigen::Vector3d tra_com = tra[0], tra_com_dot = tra[1], tra_com_ddot = tra[2];
+    /* std::vector<Eigen::Vector3d> tra;*/ // used to be in the parameter list
+    // Eigen::Vector3d tra_com = tra[0], tra_com_dot = tra[1], tra_com_ddot = tra[2];
+    Eigen::Vector3d tra_com = gl.trajd[0], tra_com_dot = gl.trajd[1], tra_com_ddot = gl.trajd[2];
+
     // Eigen::Vector3d tra_com_dddot; // unused
     // tra_com_dddot << 0, 0, 0; // unused
 

@@ -76,7 +76,8 @@ public:
     Eigen::Vector2d u_tracking_global;
     int scale_record;
 
-    Eigen::Vector3d tra_com_pre, tra_com_dot_pre, tra_com_ddot_pre;
+    vector<Eigen::Vector3d> trajd; // this contains all the 3 variables in the following line
+    //Eigen::Vector3d tra_com_pre, tra_com_dot_pre, tra_com_ddot_pre;
 
     bool brake_flag, brake_flag_pre;
     bool nosolution;
@@ -90,8 +91,6 @@ public:
     vector<double> t_ctrl;
     vector<Eigen::VectorXd> u_ctrl;
 
-    FB_state trajd;
-
     // Unlisted global variables
     bool dead;
     FB_state state_brakeini;
@@ -100,7 +99,7 @@ public:
 
 std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, Global_variables);
 
-Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, Global_variables);
+Output_safety safety_certificate_complex(FB_state, std::vector<Obstacle>, Global_variables);
 
 Eigen::Vector2d virtual_control(std::vector<Eigen::Vector3d>, vector<Obstacle>, Global_variables)
 
