@@ -9,8 +9,7 @@
 
 using namespace std;
 
-Output_safety safety_certificate_complex
-(FB_state u, vector<Obstacle> traj_ob, Global_variables& gl)
+Output_safety safety_certificate_complex (FB_state u, vector<Obstacle> traj_ob, Global_variables& gl)
 {
     // vector<bool> &beta_2, bool& brake_flag, FB_state& state_brakini
     Output_safety out;
