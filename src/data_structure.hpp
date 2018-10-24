@@ -102,6 +102,6 @@ std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::ve
 
 Output_safety safety_certificate_complex(FB_state, std::vector<Eigen::Vector3d>, std::vector<Obstacle>, Global_variables);
 
-Eigen::Vector2d virtual_control(FB_state, std::vector<Eigen::Vector3d>, vector<Obstacle>, Global_variables)
+Eigen::Vector2d virtual_control(std::vector<Eigen::Vector3d>, vector<Obstacle>, Global_variables)
 
 void bicycle_model(double);
