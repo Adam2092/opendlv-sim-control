@@ -82,8 +82,10 @@ public:
     bool brake_flag, brake_flag_pre;
     bool nosolution;
 
-    // int no_ob;
-    /* vector pos_ob_array_pre, radius_pre; */ // Dynamic size, not to be global
+    // the following three are initialised by constraint_obstacles.m
+    int no_ob;
+    vector<Eigen::Vector2d> pos_ob_array_pre;
+    vector<double> radius_pre;
 
     vector<bool> beta_2;
     double dt;
@@ -97,10 +99,12 @@ public:
     
 }
 
-std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, Global_variables);
+std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, Global_variables &);
 
-Output_safety safety_certificate_complex(FB_state, std::vector<Obstacle>, Global_variables);
+Output_safety safety_certificate_complex(FB_state, std::vector<Obstacle>, Global_variables &);
 
-Eigen::Vector2d virtual_control(std::vector<Eigen::Vector3d>, vector<Obstacle>, Global_variables)
+Eigen::Vector2d virtual_control(vector<Obstacle>, Global_variables &)
 
 void bicycle_model(double);
+
+vector<Obstacle> ob_traj(double, bool, Global_variables); // No need to change gl here
