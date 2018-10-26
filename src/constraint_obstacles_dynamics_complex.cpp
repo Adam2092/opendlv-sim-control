@@ -8,11 +8,12 @@
 
 using namespace std;
 
-vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, vector<Obstacle> traj_ob, Global_variables& gl)
+vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state u, Global_variables& gl)
 {
     vector<Coefficient> res{};
     double xp_dot = u.xp_dot, yp_dot = u.yp_dot, psi_dot = u.psi_dot;
     double epsi = u.epsi, ey = u.ey, s = u.s; 
+    vector<Obstacle> traj_ob = gl.traj_ob;
     
     double dis_thresh = 600;
 //    vector<Eigen::RowVector2d> pos_ob_array, vel_ob_array;

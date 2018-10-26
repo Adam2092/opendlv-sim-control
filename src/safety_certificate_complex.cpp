@@ -9,7 +9,7 @@
 
 using namespace std;
 
-Output_safety safety_certificate_complex (FB_state u, vector<Obstacle> traj_ob, Global_variables& gl)
+Output_safety safety_certificate_complex (FB_state u, Global_variables& gl)
 {
     // vector<bool> &beta_2, bool& brake_flag, FB_state& state_brakini
     Output_safety out;
@@ -91,10 +91,11 @@ Output_safety safety_certificate_complex (FB_state u, vector<Obstacle> traj_ob, 
     double delta_min = (tempD1 - 0.5 > -1.)? tempD1 - 0.5 : -1.0;
     double delta_max = (tempD1 + 0.5 < 1.0)? tempD1 + 0.5 : 1.0;
 
-    bool flag_bound = false, dead = false, alert = false;
+    bool flag_bound = false, alert = false;
+    gl.dead = false;
     // line 83 so far
 
-    vector<Coefficient> results_2 = constraint_obstacles_dynamics_complex(u, traj_ob, &dead);
+    vector<Coefficient> results_2 = constraint_obstacles_dynamics_complex(u, gl);
     int no_ob_active = results_2.size();
     int nu_combine = 1;
 
@@ -288,7 +289,7 @@ Output_safety safety_certificate_complex (FB_state u, vector<Obstacle> traj_ob, 
     } // for (i = 0 to nu_combine)
     // line 288 so far
 
-    if((value_min < 1e8) && (!alert) && (!dead))
+    if((value_min < 1e8) && (!alert) && (!gl.dead))
     {
         out.x <<  x_min[0], x_min[1];
         out.hasSolution = true;

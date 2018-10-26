@@ -76,18 +76,19 @@ public:
     Eigen::Vector2d u_tracking_global;
     int scale_record;
 
-    vector<Eigen::Vector3d> trajd; // this contains all the 3 variables in the following line
+    std::vector<Eigen::Vector3d> trajd; // this contains all the 3 variables in the following line
     //Eigen::Vector3d tra_com_pre, tra_com_dot_pre, tra_com_ddot_pre;
 
     bool brake_flag, brake_flag_pre;
     bool nosolution;
 
     // the following three are initialised by constraint_obstacles.m
-    int no_ob;
-    vector<Eigen::Vector2d> pos_ob_array_pre;
-    vector<double> radius_pre;
+    std::vector<Obstacle> traj_ob;
+    // int no_ob;
+    // vector<Eigen::Vector2d> pos_ob_array_pre;
+    // vector<double> radius_pre;
 
-    vector<bool> beta_2;
+    std::vector<bool> beta_2;
     double dt;
 
     // // For data sample and visualisation
@@ -100,11 +101,11 @@ public:
     
 }
 
-std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, std::vector<Obstacle>, Global_variables &);
+std::vector<Coefficient> constraint_obstacles_dynamics_complex(FB_state, Global_variables &);
 
-Output_safety safety_certificate_complex(FB_state, std::vector<Obstacle>, Global_variables &);
+Output_safety safety_certificate_complex(FB_state, Global_variables &);
 
-Eigen::Vector2d virtual_control(vector<Obstacle>, Global_variables &)
+Eigen::Vector2d virtual_control(Global_variables &)
 
 void bicycle_model(double);
 
