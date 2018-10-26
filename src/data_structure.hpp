@@ -20,7 +20,8 @@ public:
     double s{0.0};       // longitudinal position
     double steer{0.0};
     double acc{0.0};
-    FB_state(double, double, double, double, double, double, double, double);
+    FB_state(double a, double b, double c, double d, double e, double f, double g, double h):
+        xp_dot(a), yp_dot(b), psi_dot(c), epsi(d), ey(e), s(f), steer(g), acc(h){}
 };
 
 class Obstacle
@@ -33,6 +34,23 @@ public:
     double acc_x{0.0};
     double acc_y{0.0};
     double radius{0.0};
+
+    bool isConf(Obstacle that)
+    {
+        Eigen::Vector2d temp;
+        temp << this->pos_x - that.pos_x, this->pos_y - that.pos_y;
+        return (temp.norm() <= (this->radius + that.radius)) ? true : false;
+    }
+
+    bool isConf(std::vector<Obstacle> list)
+    {
+        if (0 == list.size()) return false;
+        for (int i = 0; i < list.size(); i++)
+        {
+            if (this->isConf(list[i])) return true;
+        }
+    return false;
+    }
 };
 
 class Coefficient // the return value "out", line 463-480 in constraint_obs~.m
@@ -109,4 +127,4 @@ Eigen::Vector2d virtual_control(Global_variables &)
 
 void bicycle_model(double);
 
-vector<Obstacle> ob_traj(double, bool, Global_variables); // No need to change gl here
+void ob_traj(double, bool, &Global_variables);
