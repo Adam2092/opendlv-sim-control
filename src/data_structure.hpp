@@ -90,8 +90,9 @@ public:
     vector<bool> beta_2;
     double dt;
 
-    vector<double> t_ctrl;
-    vector<Eigen::VectorXd> u_ctrl;
+    // // For data sample and visualisation
+    // vector<double> t_ctrl;
+    // vector<Eigen::VectorXd> u_ctrl;
 
     // Unlisted global variables
     bool dead;
