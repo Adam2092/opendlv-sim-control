@@ -29,13 +29,13 @@ void bicycle_sim(double time, Global_variables& gl) // "time" replaced "T" in .m
     //[t1,y1_nom, y1_actual, u1]=self_solverdynamics(@bicycle_nominal_ode, tspan, y0, options, current_hdl, @bicycle_actual_ode, current_hdl_actual);
 }
 
-Eigen::Vector2d virtual_control(vector<Obstacle> traj_ob, Global_variables& gl)
+Eigen::Vector2d virtual_control(Global_variables& gl)
 {
     Eigen::Vector2d u;
     if (0 == gl.scale)
     {
         // "horizon = 1" unused
-        Output_safety correct = safety_certificate_complex(u, traj_ob, &gl);
+        Output_safety correct = safety_certificate_complex(u, gl);
         gl.nosolution = !(correct.hasSolution);
         u = correct.x;
         gl.u_global = u;
@@ -47,13 +47,13 @@ Eigen::Vector2d virtual_control(vector<Obstacle> traj_ob, Global_variables& gl)
     return u;
 }
 
-Eigen::Vector2d bicycle_nominal_ode(double t, FB_state y, Eigen::VectorXd &dy, Global_variables &gl)
+Eigen::Vector2d bicycle_nominal_ode(double delta_t, FB_state y, Eigen::VectorXd &dy, Global_variables &gl)
 {
     // if (0 == gl.scale_record)
     //    gl.trajd = traj_gen(t, y); // not yet written
-    vector<Obstacle> traj_ob  = ob_traj(t, false, gl);
+    ob_traj(delta_t, false, gl);
     // u = feval (ctrl_hdl, t, y, trajd, traj_ob);
-    Eigen::Vector2d u = virtual_control(traj_ob, gl);
+    Eigen::Vector2d u = virtual_control(gl);
 
     // if (gl.nosolution) // commented out
 
@@ -110,5 +110,5 @@ Eigen::Vector2d bicycle_nominal_ode(double t, FB_state y, Eigen::VectorXd &dy, G
 
 // Eigen::Vector2d tracking_control(double t, FB_state y, y_nom, u_nom)
 // {
-    
+
 // }
