@@ -22,6 +22,56 @@ public:
     double acc{0.0};
     FB_state(double a, double b, double c, double d, double e, double f, double g, double h):
         xp_dot(a), yp_dot(b), psi_dot(c), epsi(d), ey(e), s(f), steer(g), acc(h){}
+    FB_state operator +(const FB_state& other)
+    {
+        return FB_state(
+            this->xp_dot + other.xp_dot,
+            this->yp_dot + other.yp_dot,
+            this->psi_dot + other.psi_dot,
+            this->epsi + other.epsi,
+            this->ey + other.ey,
+            this->s + other.s,
+            this->steer + other.steer,
+            this->acc + other.acc
+        );
+    }
+    FB_state operator +(const Eigen::VectorXd& other)
+    {
+        return FB_state( 
+            this->xp_dot + other(0),
+            this->yp_dot + other(1),
+            this->psi_dot + other(2)
+            this->epsi + other(3),
+            this->ey + other(4),
+            this->s + other(5),
+            this->steer + other(6),
+            this->acc + other(7)
+        );
+    }
+    FB_state& operator +=(const FB_state& other)
+    {
+        this->xp_dot += other.xp_dot;
+        this->yp_dot += other.yp_dot;
+        this->psi_dot += other.psi_dot;
+        this->epsi += other.epsi;
+        this->ey += other.ey;
+        this->s += other.s;
+        this->steer += other.steer;
+        this->acc += other.acc;
+        return *this;
+    }
+    FB_state& operator +=(const Eigen::VectorXd& other)
+    {
+        this->xp_dot += other(0);
+        this->yp_dot += other(1);
+        this->psi_dot += other(2);
+        this->epsi += other(3);
+        this->ey += other(4);
+        this->s += other(5);
+        this->steer += other(6);
+        this->acc += other(7);
+        return *this;
+    }
 };
 
 class Obstacle
